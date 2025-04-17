@@ -12,8 +12,14 @@ const orderRoutes = require('./routes/orders');
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: 'https://dnq-fashion.vercel.app' 
+}));
 app.use(express.json());
+
+app.get('/', (req, res) => {
+    res.status(200).json({ message: 'Welcome to the DNQ Fashion Backend API!' });
+});
 
 // Sử dụng routes
 app.use('/api/users', userRoutes);
