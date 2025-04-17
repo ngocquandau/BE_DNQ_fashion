@@ -3,6 +3,11 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
+// Route mặc định cho GET /api/cart (không có user_id)
+router.get('/', (req, res) => {
+    return res.status(400).json({ message: 'Vui lòng cung cấp user_id. Ví dụ: /api/cart/9' });
+});
+
 // API thêm sản phẩm vào giỏ hàng
 router.post('/', (req, res) => {
     const { user_id, product_id, quantity } = req.body;
@@ -51,7 +56,7 @@ router.get('/:user_id', (req, res) => {
     const query = `
         SELECT c.*, p.name, p.price, p.image_url 
         FROM cart c 
-        JOIN products p ON c.product_id = p.id 
+        JOIN Products p ON c.product_id = p.id 
         WHERE c.user_id = ?
     `;
     db.query(query, [user_id], (err, results) => {
