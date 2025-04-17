@@ -4,7 +4,7 @@ const router = express.Router();
 const db = require('../db');
 
 // API đăng ký
-router.post('/register', (req, res) => {
+router.post('/register', async (req, res) => {
     const { username, email, password } = req.body;
     const role = 'user'; // Mặc định là user khi đăng ký
 
@@ -14,28 +14,26 @@ router.post('/register', (req, res) => {
         return res.status(400).json({ message: 'Vui lòng nhập đầy đủ thông tin.' });
     }
 
-    const query = 'INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)';
-    db.query(query, [username, email, password, role], (err, result) => {
-        if (err) {
-            if (err.code === 'ER_DUP_ENTRY') {
-                // Kiểm tra xem lỗi trùng lặp là do username hay email
-                if (err.sqlMessage.includes('username')) {
-                    return res.status(400).json({ message: 'Username đã tồn tại.' });
-                }
-                if (err.sqlMessage.includes('email')) {
-                    return res.status(400).json({ message: 'Email đã tồn tại.' });
-                }
-            }
-            console.error('Error registering user:', err);
-            return res.status(500).json({ message: 'Lỗi server. Vui lòng thử lại.' });
-        }
+    try {
+        await db.query('INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)', [username, email, password, role]);
         console.log(`User registered: ${username}, ${email}, ${role}, password: ${password}`);
         res.status(201).json({ message: 'Đăng ký thành công!' });
-    });
+    } catch (err) {
+        if (err.code === 'ER_DUP_ENTRY') {
+            if (err.sqlMessage.includes('username')) {
+                return res.status(400).json({ message: 'Username đã tồn tại.' });
+            }
+            if (err.sqlMessage.includes('email')) {
+                return res.status(400).json({ message: 'Email đã tồn tại.' });
+            }
+        }
+        console.error('Error registering user:', err);
+        res.status(500).json({ message: 'Lỗi server. Vui lòng thử lại.' });
+    }
 });
 
 // API đăng nhập
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
     const { username, password, role } = req.body;
 
     console.log('Login attempt:', { username, password, role });
@@ -44,13 +42,8 @@ router.post('/login', (req, res) => {
         return res.status(400).json({ message: 'Vui lòng nhập đầy đủ thông tin.' });
     }
 
-    const query = 'SELECT * FROM users WHERE username = ?';
-    db.query(query, [username], (err, results) => {
-        if (err) {
-            console.error('Error fetching user:', err);
-            return res.status(500).json({ message: 'Lỗi server. Vui lòng thử lại.' });
-        }
-
+    try {
+        const [results] = await db.query('SELECT * FROM users WHERE username = ?', [username]);
         if (results.length === 0) {
             console.log(`User not found: ${username}`);
             return res.status(401).json({ message: 'Tên đăng nhập không tồn tại.' });
@@ -74,11 +67,14 @@ router.post('/login', (req, res) => {
         // Đăng nhập thành công
         console.log(`Login successful: ${username}, role: ${role}`);
         res.status(200).json({
-            id: user.id, // Thêm id vào phản hồi
+            id: user.id,
             username: user.username,
             role: user.role,
         });
-    });
+    } catch (err) {
+        console.error('Error fetching user:', err);
+        res.status(500).json({ message: 'Lỗi server. Vui lòng thử lại.' });
+    }
 });
 
 module.exports = router;

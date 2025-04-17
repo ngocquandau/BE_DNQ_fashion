@@ -1,14 +1,17 @@
+// routes/categories.js
 const express = require('express');
 const router = express.Router();
-const db = require('../config/db');
+const db = require('../db'); // Sửa từ '../config/db' thành '../db' để đồng bộ
 
 // Lấy tất cả danh mục
-router.get('/', (req, res) => {
-    const query = 'SELECT * FROM Categories';
-    db.query(query, (err, results) => {
-        if (err) return res.status(500).json({ error: 'Server error' });
+router.get('/', async (req, res) => {
+    try {
+        const [results] = await db.query('SELECT * FROM Categories');
         res.json(results);
-    });
+    } catch (err) {
+        console.error('Error fetching categories:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
 });
 
 module.exports = router;
